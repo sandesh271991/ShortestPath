@@ -24,7 +24,7 @@ jobs:
             -project ShortestPath.xcodeproj \
             -scheme ShortestPath \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
             build
 
       - name: Test
@@ -33,5 +33,5 @@ jobs:
             -project ShortestPath.xcodeproj \
             -scheme ShortestPath \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
             test

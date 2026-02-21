@@ -8,53 +8,28 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: macos-latest
+    runs-on: macos-14
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: Resolve simulator destination
-        id: destination
-        run: |
-          DESTS=$(xcodebuild -project ShortestPath.xcodeproj -scheme ShortestPath -showdestinations)
-          ID=$(echo "$DESTS" | sed -n 's/.*{ platform:iOS Simulator, id:\([^,]*\).*/\1/p' | head -n1)
-          if [ -z "$ID" ]; then
-            echo "No concrete iOS Simulator destination; will build for device and skip tests."
-            echo "skip_tests=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "id=$ID" >> "$GITHUB_OUTPUT"
-          echo "skip_tests=false" >> "$GITHUB_OUTPUT"
-
       - name: Build
-        run: |
-          if [ "${{ steps.destination.outputs.skip_tests }}" = "true" ]; then
-            xcodebuild \
-              -project ShortestPath.xcodeproj \
-              -scheme ShortestPath \
-              -sdk iphoneos \
-              -destination 'generic/platform=iOS' \
-              build
-          else
-            xcodebuild \
-              -project ShortestPath.xcodeproj \
-              -scheme ShortestPath \
-              -sdk iphonesimulator \
-              -destination "id=${{ steps.destination.outputs.id }}" \
-              build
-          fi
-
-      - name: Test
-        if: steps.destination.outputs.skip_tests != 'true'
         run: |
           xcodebuild \
             -project ShortestPath.xcodeproj \
             -scheme ShortestPath \
-            -sdk iphonesimulator \
-            -destination "id=${{ steps.destination.outputs.id }}" \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            clean build
+
+      - name: Test
+        run: |
+          xcodebuild \
+            -project ShortestPath.xcodeproj \
+            -scheme ShortestPath \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
             test

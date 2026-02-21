@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, version1 ]
+  pull_request:
+    branches: [ main, version1 ]
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project ShortestPath.xcodeproj \
+            -scheme ShortestPath \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            build
+
+      - name: Test
+        run: |
+          xcodebuild \
+            -project ShortestPath.xcodeproj \
+            -scheme ShortestPath \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            test

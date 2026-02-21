@@ -21,24 +21,36 @@ jobs:
       - name: Resolve simulator destination
         id: destination
         run: |
-          ID=$(xcrun simctl list devices available | grep -Eo '[0-9A-F-]{36}' | head -n1)
+          DESTS=$(xcodebuild -project ShortestPath.xcodeproj -scheme ShortestPath -showdestinations)
+          ID=$(echo "$DESTS" | sed -n 's/.*{ platform:iOS Simulator, id:\([^,]*\).*/\1/p' | head -n1)
           if [ -z "$ID" ]; then
-            echo "No simulator destinations available."
-            xcrun simctl list devices
-            exit 1
+            echo "No concrete iOS Simulator destination; will build for device and skip tests."
+            echo "skip_tests=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "skip_tests=false" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: |
-          xcodebuild \
-            -project ShortestPath.xcodeproj \
-            -scheme ShortestPath \
-            -sdk iphonesimulator \
-            -destination "id=${{ steps.destination.outputs.id }}" \
-            build
+          if [ "${{ steps.destination.outputs.skip_tests }}" = "true" ]; then
+            xcodebuild \
+              -project ShortestPath.xcodeproj \
+              -scheme ShortestPath \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              build
+          else
+            xcodebuild \
+              -project ShortestPath.xcodeproj \
+              -scheme ShortestPath \
+              -sdk iphonesimulator \
+              -destination "id=${{ steps.destination.outputs.id }}" \
+              build
+          fi
 
       - name: Test
+        if: steps.destination.outputs.skip_tests != 'true'
         run: |
           xcodebuild \
             -project ShortestPath.xcodeproj \

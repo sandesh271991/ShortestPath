@@ -40,7 +40,7 @@ jobs:
       - name: Resolve simulator destination
         id: destination
         run: |
-          ID=$(xcrun simctl list devices available | sed -n 's/.*(\\([0-9A-F-]\\{36\\}\\)).*/\\1/p' | head -n1)
+          ID=$(xcrun simctl list devices available | grep -Eo '[0-9A-F-]{36}' | head -n1)
           if [ -z "$ID" ]; then
             echo "No simulator destinations available."
             xcrun simctl list devices

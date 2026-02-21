@@ -18,17 +18,32 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Install iOS simulator runtime
+        run: |
+          sudo xcodebuild -runFirstLaunch
+          sudo xcodebuild -downloadPlatform iOS
+
+      - name: Ensure iPhone simulator device
+        run: |
+          if ! xcrun simctl list devices available | grep -q "iPhone"; then
+            DEVICE_TYPE=$(xcrun simctl list devicetypes | sed -n 's/.*(com.apple.CoreSimulator.SimDeviceType.iPhone-[^)]*).*/\1/p' | head -n1)
+            RUNTIME_ID=$(xcrun simctl list runtimes | sed -n 's/.*iOS .* (\([^)]*\)).*/\1/p' | head -n1)
+            if [ -z "$DEVICE_TYPE" ] || [ -z "$RUNTIME_ID" ]; then
+              echo "Unable to determine iPhone device type or iOS runtime."
+              xcrun simctl list devicetypes
+              xcrun simctl list runtimes
+              exit 1
+            fi
+            xcrun simctl create "CI iPhone" "$DEVICE_TYPE" "$RUNTIME_ID"
+          fi
+
       - name: Resolve simulator destination
         id: destination
         run: |
-          DESTS=$(xcodebuild -project ShortestPath.xcodeproj -scheme ShortestPath -showdestinations)
-          ID=$(echo "$DESTS" | sed -n 's/.*{ platform:iOS Simulator, id:\([^,]*\).*/\1/p' | head -n1)
-          if [ -z "$ID" ]; then
-            ID=$(echo "$DESTS" | sed -n 's/.*{ platform:visionOS Simulator, id:\([^,]*\).*/\1/p' | head -n1)
-          fi
+          ID=$(xcrun simctl list devices available | sed -n 's/.*(\\([0-9A-F-]\\{36\\}\\)).*/\\1/p' | head -n1)
           if [ -z "$ID" ]; then
             echo "No simulator destinations available."
-            echo "$DESTS"
+            xcrun simctl list devices
             exit 1
           fi
           echo "id=$ID" >> "$GITHUB_OUTPUT"

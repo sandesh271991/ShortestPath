@@ -18,13 +18,28 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Resolve simulator destination
+        id: destination
+        run: |
+          DESTS=$(xcodebuild -project ShortestPath.xcodeproj -scheme ShortestPath -showdestinations)
+          ID=$(echo "$DESTS" | sed -n 's/.*{ platform:iOS Simulator, id:\([^,]*\).*/\1/p' | head -n1)
+          if [ -z "$ID" ]; then
+            ID=$(echo "$DESTS" | sed -n 's/.*{ platform:visionOS Simulator, id:\([^,]*\).*/\1/p' | head -n1)
+          fi
+          if [ -z "$ID" ]; then
+            echo "No simulator destinations available."
+            echo "$DESTS"
+            exit 1
+          fi
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+
       - name: Build
         run: |
           xcodebuild \
             -project ShortestPath.xcodeproj \
             -scheme ShortestPath \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
+            -destination "id=${{ steps.destination.outputs.id }}" \
             build
 
       - name: Test
@@ -33,5 +48,5 @@ jobs:
             -project ShortestPath.xcodeproj \
             -scheme ShortestPath \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
+            -destination "id=${{ steps.destination.outputs.id }}" \
             test
